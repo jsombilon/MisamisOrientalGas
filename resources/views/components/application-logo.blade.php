@@ -1,0 +1,1 @@
+<img src="{{ asset('images/Gasul-icon.png') }}" alt="Logo" {{ $attributes }}>
