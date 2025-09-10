@@ -59,8 +59,8 @@
                                     <select id="payment" wire:model.defer="payment" class="mt-1 block w-full border rounded-lg px-3 py-2 text-sm">
                                         <option value="">-- Select --</option>
                                         <option value="Cash">Cash</option>
-                                        <option value="Post Date Credit">Post Date Credit</option>
-                                        <option value="On Date Credit">On Date Credit</option>
+                                        <option value="Post Date Check">Post Date Check</option>
+                                        <option value="On Date Check">On Date Check</option>
                                         <option value="Charge">Charge</option>
                                     </select>
                                     <x-input-error class="mt-2" :messages="$errors->get('payment')" />
@@ -72,14 +72,14 @@
                             <div class="flex items-center gap-4">
                                 <x-primary-button>{{ __('Save') }}</x-primary-button>
 
-                                @if (session('status') === 'client-added')
+                                @if (session('status') === 'success')
                                     <p
                                         x-data="{ show: true }"
                                         x-show="show"
                                         x-transition
                                         x-init="setTimeout(() => show = false, 2000)"
-                                        class="text-sm text-gray-600 dark:text-gray-400"
-                                    >{{ __('Saved.') }}</p>
+                                        class="text-sm text-red-600 dark:text-red-400"
+                                    >{{ __('Client Added Successfully!.') }}</p>
                                 @endif
                             </div>
                         </form>

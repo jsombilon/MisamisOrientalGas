@@ -8,7 +8,9 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RequestController;
 use App\Livewire\ClientLive;
+use App\Livewire\LedgerLive;
 use App\Livewire\OrderLive;
+use App\Livewire\PaymentLive;
 use App\Livewire\ProductLive;
 use Illuminate\Support\Facades\Route;
 
@@ -33,13 +35,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/products', ProductLive::class)->name('products');
 
     Route::get('/orders', OrderLive::class)->name('orders');
-    // Route::get('/products', [ProductController::class, 'product'])->name('product');
 
-    // Route::get('/order', [OrderController::class, 'order'])->name('order');
+    Route::get('/payments', PaymentLive::class)->name('payment');
 
-    Route::get('/ledger', [LedgerController::class, 'ledger'])->name('ledger');
-
-    Route::get('/payment', [PaymentController::class, 'payment'])->name('payment');
+    Route::get('/ledger', LedgerLive::class)->name('ledger');
 
     Route::get('/request', [RequestController::class, 'request'])->name('request');
 });

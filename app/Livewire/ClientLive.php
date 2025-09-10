@@ -4,7 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Client;
 use Livewire\Component;
-
+ 
 class ClientLive extends Component
 {   
     public $clientnum, $name, $location, $contact, $contactper, $payment;
@@ -41,7 +41,7 @@ class ClientLive extends Component
 
         $this->formKey++;
 
-        session()->flash('status', 'product-added');
+        session()->flash('status', 'success');
 
     }
 

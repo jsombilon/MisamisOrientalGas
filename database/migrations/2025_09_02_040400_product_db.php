@@ -15,6 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('product_type');
             $table->string('product_name');
+            $table->string('product_category');
+            $table->integer('kg');
+            $table->string('ext');
             $table->integer('price');
             $table->integer('pickup');
             $table->integer('spu');

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('contact', 20)->nullable();
             $table->string('contact_person')->nullable();
             $table->string('payment_type');
+            $table->decimal('outstanding_balance', 12, 2)->default(0);
             $table->timestamp('created_at');
             $table->timestamp('updated_at')->nullable();
         });
