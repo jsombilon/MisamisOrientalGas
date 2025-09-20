@@ -25,6 +25,8 @@ return new class extends Migration
             $table->date('payment_date')->default(DB::raw('CURRENT_DATE'));  // when payment is made
             $table->string('reference_no')->nullable();  // check #, OR number, etc.
             $table->text('remarks')->nullable();
+            $table->date('check_date')->nullable(); // for post dated checks
+            $table->enum('check_status', ['Unpaid', 'Paid', 'Bounced'])->nullable();
             $table->enum('payment_status', ['Unpaid', 'Partial', 'Paid','Cancel','Installment','Cleared'])->default('Unpaid');
             $table->timestamps();
         });

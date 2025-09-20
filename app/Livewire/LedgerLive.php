@@ -7,6 +7,9 @@ use App\Models\Order;
 use App\Models\Payment;
 use Livewire\Component;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf as DomPDF;
+
+
 
 class LedgerLive extends Component
 {
@@ -34,8 +37,11 @@ class LedgerLive extends Component
         // Default filters to current year & month
         $this->filterYear = now()->year;
         $this->filterMonth = now()->month;
+        $this->filterCategory = 'all';
 
+        // initial load when modal opens
         $this->loadLedger();
+
         $this->showLedgerModal = true;
     }
 
@@ -48,92 +54,126 @@ class LedgerLive extends Component
         $this->totalBalance = 0;
     }
 
-    public function updatedFilterYear()
+    /**
+     * This is the button action called from Blade.
+     * It intentionally does NOT run on every dropdown change.
+     */
+    public function generateLedger()
     {
         $this->loadLedger();
     }
 
-    public function updatedFilterMonth()
-    {
-        $this->loadLedger();
-    }
-
-    public function updatedFilterCategory()
-    {
-        $this->loadLedger();
-    }
-
+    /**
+     * Build the ledger entries (orders + payments), compute forwarded balance and totals
+     * NOTE: this method expects $this->filterYear and $this->filterMonth to be set.
+     */
     private function loadLedger()
     {
         if (!$this->selectedClient) return;
 
-        $year = $this->filterYear;
-        $month = $this->filterMonth;
+        $year = $this->filterYear ?? now()->year;
+        $month = $this->filterMonth ?? now()->month;
 
-        // Dates for filtering
         $startOfMonth = Carbon::create($year, $month, 1)->startOfMonth();
         $endOfMonth   = Carbon::create($year, $month, 1)->endOfMonth();
 
-        // Fetch orders
+        // --- Orders (debit) ---
         $orders = Order::with(['items.product'])
             ->where('client_id', $this->selectedClient->id)
             ->get()
             ->map(function ($order) {
-                return (object) [
+                return [
                     'type' => 'order',
                     'date' => $order->created_at,
-                    'debit' => $order->total, // Adds to balance
-                    'credit' => 0,
-                    'balance' => 0, // placeholder, will compute later
-                    'remarks' => $order->remarks ?? 'Order',
+                    'debit' => (float) $order->total,
+                    'credit' => 0.0,
+                    'remarks' => $order->details ?? 'Order',
                     'order' => $order,
                     'payment' => null,
                 ];
             });
 
-        // Fetch payments
+        // --- Payments (credit) ---
         $payments = Payment::where('client_id', $this->selectedClient->id)
+            ->where(function ($q) {
+                $q->where('payment_type', '!=', 'Post Date Check')
+                ->orWhere(function ($q2) {
+                    $q2->where('payment_type', 'Post Date Check')
+                        ->where('check_status', 'Paid');
+                });
+            })
             ->get()
             ->map(function ($payment) {
-                return (object) [
+                $isPDC = strtolower($payment->payment_type) === 'post date check';
+                $date = $isPDC && $payment->check_date ? Carbon::parse($payment->check_date) : $payment->created_at;
+                return [
                     'type' => 'payment',
-                    'date' => $payment->created_at,
-                    'debit' => 0,
-                    'credit' => $payment->amount_paid, // Reduces balance
-                    'balance' => 0, // placeholder
+                    'date' => $date,
+                    'debit' => 0.0,
+                    'credit' => (float) $payment->amount_paid,
                     'remarks' => $payment->remarks ?? 'Payment',
                     'order' => $payment->order,
                     'payment' => $payment,
                 ];
             });
 
-        // Merge + sort
-        $allEntries = $orders->merge($payments)->sortBy('date')->values();
+        // --- Merge and sort ---
+        $allEntries = collect($orders)->merge($payments)->sortBy('date')->values();
 
-        $runningBalance = 0;
-        $forwarded = 0;
+        $runningBalance = 0.0;
+        $forwarded = 0.0;
         $filteredEntries = [];
 
         foreach ($allEntries as $entry) {
-            $runningBalance += $entry->debit - $entry->credit;
+            $runningBalance += ($entry['debit'] ?? 0) - ($entry['credit'] ?? 0);
 
-            // Before selected month → goes to forwarded
-            if ($entry->date->lt($startOfMonth)) {
+            if ($entry['date']->lt($startOfMonth)) {
+                // everything before this month contributes to forwarded
                 $forwarded = $runningBalance;
                 continue;
             }
 
-            // Within filter range
-            if ($entry->date->between($startOfMonth, $endOfMonth)) {
-                $entry->balance = $runningBalance;
-                $filteredEntries[] = $entry;
+            if ($entry['date']->between($startOfMonth, $endOfMonth)) {
+                if ($this->filterCategory === 'all' || $this->filterCategory === $entry['type']) {
+                    // balance inside THIS month starts at forwarded and counts forward
+                    $entry['balance'] = $forwarded 
+                        + collect($filteredEntries)->sum(fn($e) => ($e['debit'] - $e['credit'])) 
+                        + ($entry['debit'] - $entry['credit']);
+                    $filteredEntries[] = $entry;
+                }
             }
         }
 
-        // Set properties for Blade
+        // monthly balance = forwarded + net of filtered entries
+        $monthlyNet = collect($filteredEntries)->sum(fn($e) => ($e['debit'] - $e['credit']));
+        $monthEndBalance = $forwarded + $monthlyNet;
+
         $this->ledgerEntries = $filteredEntries;
         $this->balanceForwarded = $forwarded;
-        $this->totalBalance = $runningBalance;
+        $this->totalBalance = $monthEndBalance; // <-- only balance of this month
+    }
+
+
+    public function printLedger($clientId)
+    {
+        $client = Client::findOrFail($clientId);
+        $this->loadLedger();
+        // Use already prepared properties
+        $pdf = DomPDF::loadView('pdf.ledger', [
+            'client' => $client,
+            'ledgerEntries' => $this->ledgerEntries,
+            'balanceForwarded' => $this->balanceForwarded,
+            'totalBalance' => $this->totalBalance,
+            'filterYear' => $this->filterYear,
+            'filterMonth' => $this->filterMonth,
+            'filterCategory' => $this->filterCategory,
+        ]);
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            'ledger-'.$client->client_number.'.pdf'
+        );
+
     }
 
     public function render()

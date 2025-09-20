@@ -59,16 +59,38 @@ class OrderLive extends Component
 
     public $productFilter = 'all'; // default filter
 
+    public $allQuantities = [];
+    public $contentQuantities = [];
+    public $soldQuantities = [];
 
     public $formKey = 0;
 
     public function mount()
     {
         $this->clients = Client::all();
-        $this->products = Product::orderBy('product_name', 'asc')->get();
+        $this->products = Product::all();
         $this->order_slip = $this->generateOrderSlip();
 
         $this->loadTodayOrders();
+    }
+
+    // public function updatedProductFilter()
+    // {
+    //     // Update products list based on filter
+    //     if ($this->productFilter === 'all') {
+    //         $this->products = Product::all();
+    //     } else {
+    //         $this->products = Product::where('product_category', $this->productFilter)->get();
+    //     }
+    // }
+
+    // Add this method to ensure quantities are properly reset
+    public function clearQuantities()
+    {
+        $this->quantities = [];
+        $this->subtotals = [];
+        $this->total = 0;
+        $this->recalculateTotals();
     }
 
     private function generateOrderSlip()
@@ -174,7 +196,24 @@ class OrderLive extends Component
         }
 
 
-        $this->reset(['quantities', 'subtotals', 'total', 'showSummary', 'summaryProducts']);
+        // Reset all relevant fields
+        $this->reset([
+            'client_number',
+            'client_name',
+            'price_code',
+            'discount',
+            'discount_type',
+            'purchase_order',
+            'wwrs',
+            'truck',
+            'details',
+            'delivery_details',
+            'quantities',
+            'subtotals',
+            'total',
+            'showSummary',
+            'summaryProducts'
+        ]);
         $this->order_slip = $this->generateOrderSlip();
 
         $this->todayOrders = Order::with('client')
@@ -372,5 +411,81 @@ class OrderLive extends Component
             default  => 0,
         };
     }
+
+
+    public function printOrder($orderId)
+    {
+        // Redirect to a route that generates the PDF
+        return redirect()->route('orders.print', ['order' => $orderId]);
+    }
+
+    public function generateDailySalesReport()
+{
+    $today = now()->toDateString();
+
+    // Fetch today’s orders with items and client
+    $orders = Order::with(['items.product', 'client'])
+        ->whereDate('created_at', $today)
+        ->get();
+
+    $orderData = [];
+    $totalCash = 0;
+    $totalAccount = 0;
+    $productSummary = [];
+
+    $count = 1;
+    foreach ($orders as $order) {
+        $customer = $order->client->client_name ?? 'Unknown';
+        $paymentType = strtolower($order->client->payment_type);
+
+        $cash = 0;
+        $account = 0;
+
+        if (in_array($paymentType, ['charge', 'post date check', 'on date check'])) {
+            $account = $order->total;
+            $totalAccount += $order->total;
+        } else {
+            $cash = $order->total;
+            $totalCash += $order->total;
+        }
+
+        // Summarize products
+        foreach ($order->items as $item) {
+            $category = $item->product->product_category ?? 'Uncategorized';
+            $name = $item->product->product_name;
+            $qty = $item->quantity;
+
+            $key = $category . '|' . $name;
+
+            if (!isset($productSummary[$key])) {
+                $productSummary[$key] = ['category' => $category, 'name' => $name, 'qty' => 0];
+            }
+            $productSummary[$key]['qty'] += $qty;
+        }
+
+        $orderData[] = [
+            '#' => $count++,
+            'customer' => $customer,
+            'order_slip' => $order->order_slip,
+            'orders_made' => $order->items,
+            'account' => $account,
+            'cash' => $cash,
+        ];
+    }
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.daily-sales', [
+        'date' => $today,
+        'orders' => $orderData,
+        'productSummary' => $productSummary,
+        'totalCash' => $totalCash,
+        'totalAccount' => $totalAccount,
+    ])->setPaper('a4', 'landscape');
+
+    return response()->streamDownload(
+        fn () => print($pdf->output()),
+        "daily-sales-$today.pdf"
+    );
+}
+
 
 }

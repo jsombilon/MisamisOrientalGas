@@ -6,7 +6,7 @@
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        th, td { border: 1px solid #000; padding: 4px; text-align: left; font-size: 11px; }
+        th, td { border: 1px solid #000; padding: 4px; font-size: 11px; }
         th { background: #f0f0f0; }
         .header-table, .client-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         .header-table td { border: 1px solid #000; padding: 6px; font-size: 9px; }
@@ -53,24 +53,35 @@
         | <strong>Category:</strong> {{ ucfirst($filterCategory) }}
         {{-- | <strong>Payment Type:</strong> {{ $client->payment_type }} --}}
     </p>
-
     <!-- LEDGER TABLE -->
-    <table>
-        <thead>
+    <table class="min-w-full border-collapse text-xs sm:text-sm mb-4">
+        <thead class="bg-gray-100">
             <tr>
-                <th>Date</th>
-                <th>Order Slip</th>
-                <th>Debit</th>
-                <th>Credit</th>
-                <th>Balance</th>
-                <th>Remarks</th>
-                <th>Payment Type</th>
-                <th>Payment Date</th>
-                <th>Order Made</th>
+                <th class="px-2 py-1 border" colspan="9">Summary of Accounts</th>
+            </tr>
+        </thead>
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="px-2 py-1 border">Date</th>
+                <th class="px-2 py-1 border">Order Slip</th>
+                <th class="px-2 py-1 border">Debit</th>
+                <th class="px-2 py-1 border">Credit</th>
+                <th class="px-2 py-1 border">Balance</th>
+                <th class="px-2 py-1 border">Remarks</th>
+                <th class="px-2 py-1 border">Payment Type</th>
+                <th class="px-2 py-1 border">Payment Date</th>
+                <th class="px-2 py-1 border">Order Made</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($ledgerEntries as $entry)
+            {{-- Balance Forwarded --}}
+            <tr class="bg-gray-50 font-semibold">
+                <td class="px-2 py-1 border text-right" colspan="4">Balance Forwarded</td>
+                <td class="px-2 py-1 border text-right">{{ number_format($balanceForwarded, 2) }}</td>
+                <td class="px-2 py-1 border" colspan="4"></td>
+            </tr>
+
+           @forelse($ledgerEntries as $entry)
                     <tr>
                         {{-- Date --}}
                         <td class="px-2 py-1 border">
@@ -150,11 +161,20 @@
                     </tr>
                 @endforelse
 
-        </tbody>
-    </table>
 
-    <p><strong>Balance Forwarded:</strong> ₱{{ number_format($balanceForwarded, 2) }}</p>
-    <p><strong>Total Balance:</strong> ₱{{ number_format($totalBalance, 2) }}</p>
+
+            {{-- Totals --}}
+                <tr class="bg-gray-100 font-semibold">
+                    <td class="px-2 py-1 border text-right" colspan="4">Total Balance</td>
+                    <td class="px-2 py-1 border text-right">{{ number_format($totalBalance, 2) }}</td>
+                    <td class="px-2 py-1 border" colspan="4">
+                          
+                    </td>
+                </tr>
+        </tbody>
+    </table>  
+    
+
 
 </body>
 </html>

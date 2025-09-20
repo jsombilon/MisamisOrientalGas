@@ -92,51 +92,26 @@
                             </div>
                         </div>
 
-                        <!-- Products Table with Filter -->
+                        {{-- <!-- Products Table with Filter -->
                         <div class="mb-3">
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                                 <h3 class="text-lg font-medium mb-2 sm:mb-0">Product List</h3>
-
-                                <!-- Filter Styled as Checkboxes -->
-                                <div class="flex items-center space-x-4">
-                                    <!-- All -->
-                                    <label class="flex items-center space-x-1 cursor-pointer select-none">
-                                        <input type="radio" wire:model="productFilter" value="all" class="sr-only">
-                                        <span class="w-5 h-5 border rounded-sm flex items-center justify-center transition-all duration-200
-                                                    {{ $productFilter === 'all' ? 'bg-blue-600 text-white scale-110' : 'bg-white' }}">
-                                            @if($productFilter === 'all')
-                                                ✓
-                                            @endif
-                                        </span>
-                                        <span class="text-sm sm:text-base">All</span>
-                                    </label>
-
-                                    <!-- Content -->
-                                    <label class="flex items-center space-x-1 cursor-pointer select-none">
-                                        <input type="radio" wire:model="productFilter" value="content" class="hidden">
-                                        <span class="w-5 h-5 border rounded-sm flex items-center justify-center transition-all duration-200
-                                                    {{ $productFilter === 'content' ? 'bg-blue-600 text-white scale-110' : 'bg-white' }}">
-                                            @if($productFilter === 'content')
-                                                ✓
-                                            @endif
-                                        </span>
-                                        <span class="text-sm sm:text-base">Content</span>
-                                    </label>
-
-                                    <!-- Sold -->
-                                    <label class="flex items-center space-x-1 cursor-pointer select-none">
-                                        <input type="radio" wire:model="productFilter" value="sold" class="hidden">
-                                        <span class="w-5 h-5 border rounded-sm flex items-center justify-center transition-all duration-200
-                                                    {{ $productFilter === 'sold' ? 'bg-blue-600 text-white scale-110' : 'bg-white' }}">
-                                            @if($productFilter === 'sold')
-                                                ✓
-                                            @endif
-                                        </span>
-                                        <span class="text-sm sm:text-base">Sold</span>
-                                    </label>
-                                </div>
+                               <div class="flex items-center space-x-4 mb-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" wire:model.live="productFilter" name="filter" value="all" class="form-radio">
+                                    <span class="ml-2">All</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" wire:model.live="productFilter" name="filter" value="Content" class="form-radio">
+                                    <span class="ml-2">Content</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" wire:model.live="productFilter" name="filter" value="Sold" class="form-radio">
+                                    <span class="ml-2">Sold</span>
+                                </label>
                             </div>
-                        </div>
+                            </div>
+                        </div> --}}
 
                         <!-- Product Table -->
                         <div class="overflow-x-auto">
@@ -156,8 +131,7 @@
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 text-xs sm:text-sm">
-                                        @foreach ($products as $product)
-                                            @if($productFilter === 'all' || $product->product_category === ucfirst($productFilter))
+                                       @foreach ($products as $product)
                                                 <tr class="hover:bg-gray-100 transition-colors duration-200">
                                                     <td class="px-2 py-1 sm:px-4 sm:py-2 border">{{ $product->product_category }}</td>
                                                     <td class="px-2 py-1 sm:px-4 sm:py-2 border">{{ $product->product_name }}</td>
@@ -181,7 +155,6 @@
                                                         </button>
                                                     </td>
                                                 </tr>
-                                            @endif
                                         @endforeach    
                                     </tbody>
                                 </table>
@@ -274,11 +247,23 @@
             <div class="p-4 sm:p-8 bg-white text-black shadow sm:rounded-lg">
                 <div class="max-w-7xl">
                     <section>
-                        <header class="mb-4">
-                            <h2 class="text-lg font-medium text-black">
+                        <header class="mb-6 flex items-center justify-between">
+                            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                                 {{ __('Daily Sales Report') }}
                             </h2>
+
+                            <button 
+                                wire:click="generateDailySalesReport" 
+                                class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg shadow hover:bg-indigo-700 transition duration-150"
+                            >
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                {{ __('Generate Report') }}
+                            </button>
                         </header>
+
 
                         <!-- Responsive Table -->
                         <div class="overflow-x-auto max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
@@ -307,7 +292,9 @@
                                                 @if(!$order->locked)
                                                     <button wire:click="editOrder({{ $order->id }})" class="px-2 py-1 bg-blue-600 text-white rounded">Edit</button>
                                                 @else
-                                                    <button class="px-2 py-1 bg-gray-600 text-white rounded">Locked</button>
+                                                    <button wire:click="printOrder({{ $order->id }})" class="px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+                                                        Print
+                                                    </button>
                                                 @endif
                                             </td>
                                         </tr>

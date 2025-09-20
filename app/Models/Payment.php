@@ -14,10 +14,11 @@ class Payment extends Model
         'client_id',
         'amount_paid',
         'payment_type',
-        'payment_date',
         'reference_no',
         'remarks',
         'payment_status',
+        'check_date',
+        'check_status',
     ];
 
     // 🔗 Relationships

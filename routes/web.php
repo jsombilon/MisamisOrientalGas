@@ -40,6 +40,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/ledger', LedgerLive::class)->name('ledger');
 
+    Route::get('/orders/{order}/print', [OrderController::class, 'print'])->name('orders.print');
+
+    Route::get('/ledger/print', [LedgerController::class, 'print'])->name('ledger.print');
+
+    Route::get('/asd', [LedgerController::class, 'asd'])->name('ledger.print');
+    
     Route::get('/request', [RequestController::class, 'request'])->name('request');
 });
 

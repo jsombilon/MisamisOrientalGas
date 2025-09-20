@@ -2,19 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
+use App\Models\Order;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+use Barryvdh\DomPDF\Facade\Pdf as DomPDF;
 
 class OrderController extends Controller
 {
-    public function order(Request $request): View
+    public function print(Order $order)
     {
-        return view('ordering.ordering', [
-            'user' => $request->user(),
-        ]);
+        $order->load(['client', 'items.product']);
+        $pdf = DomPDF::loadView('pdf.order', compact('order'));
+        return $pdf->download('order_'.$order->order_slip.'.pdf');
     }
 }
